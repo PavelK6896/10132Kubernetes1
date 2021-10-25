@@ -1,0 +1,11 @@
+# создать один под
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+spec:
+  containers:
+    - image: quay.io/testing-farm/nginx:1.12
+      name: nginx
+      ports:
+        - containerPort: 80
