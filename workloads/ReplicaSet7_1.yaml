@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-r
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-r
+  template:
+    metadata:
+      labels:
+        app: nginx-r
+    spec:
+      containers:
+        - image: nginx:1.21
+          name: nginx121
+          ports:
+            - containerPort: 80
+
+
+---
+# kubectl port-forward service/nginx-r 8080:80
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-r
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: nginx-r
+  type: ClusterIP
+
+
+---
+# curl nginx.info.app:30080  curl 192.168.42.71:81
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    name: nginx
+spec:
+  selector:
+    app: nginx-r
+  ports:
+    - port: 81
+      targetPort: 80
+      nodePort: 30080
+      name: http
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+  externalIPs:
+    - 192.168.42.71

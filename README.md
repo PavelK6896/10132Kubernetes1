@@ -16,3 +16,5 @@
 - kubectl get pod
 - kubectl describe pod nginx
 
+- kubectl port-forward service/nginx-r 8080:80
+
