@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: DaemonSet #детектирует ноды
+metadata:
+  #Карта строковых ключей и значений, которые можно использовать для организации и классификации (области и выбора) объектов.
+  #Может совпадать с селекторами контроллеров и служб репликации.
+  labels:
+    app: node-exporter
+  name: daemon-set-1
+spec:
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1 #обновление по одной штуке
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      containers:
+        - name: daemon-set-1
+          image: k8s.gcr.io/pause:3.3
+          #Политика тяги изображения. Один из всегда, никогда, если isnotpresent.
+          #По умолчанию всегда будет: уточняется новейший тег или IFNOTPRESTENT иначе. Не может быть обновлен.
+          imagePullPolicy: IfNotPresent # Always Never IfNotPresent
+          resources:
+            limits:
+              cpu: 10m
+              memory: 64Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+      nodeSelector:
+        kubernetes.io/os: linux #метка системы только на
+      securityContext:
+        runAsNonRoot: true #запуск под другим пользователем
+        runAsUser: 65534
+      tolerations: #сопротивляемость для ноды
+        - effect: NoSchedule
+          #          operator: Exists запускать везде
+          key: node-role.kubernetes.io/ingress
