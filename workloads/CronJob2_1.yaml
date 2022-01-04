@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cron-job-1
+spec:
+  startingDeadlineSeconds: 20 #дополнительное время для запуска
+  failedJobsHistoryLimit: 2 #сохранять ошибочных
+  successfulJobsHistoryLimit: 2 #сохранять выполненных
+  suspend: false #пауза
+  schedule: "*/1 * * * *" #одна минута
+  #"Allow Разрешить" (по умолчанию): позволяет выполнять задания одновременно;
+  #"Forbid Запретить": запрещает одновременные запуски, пропуская следующий запуск, если предыдущий запуск еще не завершен;
+  #"Replace Заменить": отменяет текущее задание и заменяет его
+  concurrencyPolicy: Forbid #Allow Forbid Replace
+  jobTemplate:
+    spec:
+      #Указывает количество повторных попыток, прежде чем помечать это задание как неудачное. Значение по умолчанию равно 6
+      backoffLimit: 2
+      #Задает продолжительность в секундах относительно времени начала, в течение которого задание может быть непрерывно активным до того,
+      #как система попытается его завершить; значение должно быть целым положительным числом.
+      #Если Задание приостановлено (при создании или обновлении), этот таймер будет эффективно остановлен и сброшен при повторном возобновлении задания.
+      activeDeadlineSeconds: 100
+      template:
+        spec:
+          containers:
+            - name: cron-job-1
+              image: nginx:1.21
+              args:
+                - /bin/sh
+                - -c
+                - date; echo Hello from the Kubernetes cluster;
+          restartPolicy: Never #Never Always параллельный запуск
