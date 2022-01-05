@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-1 # kubectl describe job job-1 =>(Events
+spec:
+  backoffLimit: 2 #количество
+  activeDeadlineSeconds: 60 #время на выполнение
+  parallelism: 1
+  completions: 1
+  ttlSecondsAfterFinished: 20 #удаление послед работы
+
+  template:
+    metadata:
+      name: job-1-1
+    spec:
+      containers:
+        - name: nginx
+          image: quay.io/prometheus/busybox
+          args:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster;
+      #Не перезапускайте контейнеры после их выхода
+      restartPolicy: Never #Always OnFailure Never
+
+
