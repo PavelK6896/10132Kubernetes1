@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stateful-set-1 #+номер реплики kubectl describe StatefulSet stateful-set-1 =>(Events
+spec:
+  selector:
+    matchLabels:
+      app: s-s-1 #has to match .spec.template.metadata.labels
+  serviceName: "nginx"
+  replicas: 1 #запускается по одному
+  template:
+    metadata:
+      labels:
+        app: s-s-1
+    spec:
+      serviceAccountName: s-a-1
+      containers:
+        - name: c-s-s-1
+          image: pavelk6896/10187native4-3:latest
+          imagePullPolicy: Never
+          env:
+            - name: MY_POD_IP #ip address пода
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODENAME_1
+              value: "stateful-set-1 = $(MY_POD_IP)" #подстановка переменной
+          ports:
+            - containerPort: 8083
+              name: p-s-s-1
+          volumeMounts:
+            - name: vct-1 #имя для пвс
+              mountPath: /usr/share/nginx/html
+  volumeClaimTemplates: #автоматически создаться пространство
+    - metadata:
+        name: vct-1
+      spec:
+        accessModes: [ "ReadWriteOnce" ] #режимы доступа
+        resources:
+          requests:
+            storage: 50Mi #1Gi
+
+
+---
+# kubectl port-forward service/service-1-2 8080:8083
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-1-2
+  labels:
+    app: stateful-set-1
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 8083
+      targetPort: 8083
+      name: p-s-1
+  selector:
+    app: s-s-1
+
+
+
+
+---
+apiVersion: v1
+kind: ServiceAccount #генерирует токен для авторизации
+metadata:
+  name: s-a-1
+
+
+---
+# kubectl get role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role #роль для чтения
+metadata:
+  name: r-1
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get"]
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: r-b-1
+subjects:
+  - kind: ServiceAccount
+    name: s-a-1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: r-1
+
+
+
+---
+apiVersion: v1
+kind: ServiceAccount #генерирует токен для авторизации
+metadata:
+  name: s-a-2
+
+
+
+---
+# kubectl get clusterrole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole  #роль для чтения
+metadata:
+  name: r-2
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get"]
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: r-b-2
+subjects:
+  - kind: ServiceAccount
+    name: s-a-2
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: r-2

@@ -10,6 +10,8 @@
 - minikube addons enable ingress
 - minikube ip (System32\drivers\etc nginx.info.app)
 
+- minikube image load pavelk6896/10187native4-3:latest
+
 
 - kubectl config get-contexts
 - kubectl config use-context minikube
