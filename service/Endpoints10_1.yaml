@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: my-service
+  name: endpoints-1
 subsets:
   - addresses:
       - ip: 172.17.0.4 #ip app может меняться
@@ -14,7 +14,7 @@ subsets:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service
+  name: service-1
 spec:
   ports:
     - protocol: TCP
