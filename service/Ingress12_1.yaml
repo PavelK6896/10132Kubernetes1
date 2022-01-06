@@ -1,0 +1,66 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress #nginx on port 80 proxy to name service port auto
+metadata:
+  name: ingress-1
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          #minikube ip
+          #minikube ssh
+          #curl 192.168.49.2:80/i
+          - path: /i
+            pathType: Prefix
+            backend:
+              service:
+                name: service-1
+                port:
+                  number: 8083
+
+#kubectl port-forward service/service-1 8080:8083
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-1
+  labels:
+    app: ingress-1
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 8083
+      targetPort: 8083
+      name: p-s-1
+  selector:
+    app: deployment-1
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1-1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deployment-1 #важное имя для сервиса
+  template:
+    metadata:
+      labels:
+        app: deployment-1 #имя должно совпадать
+    spec:
+      containers:
+        - name: i-1
+          image: pavelk6896/10187native4-3:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: MY_POD_IP #ip address пода
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
