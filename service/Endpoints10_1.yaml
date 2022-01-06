@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: my-service
+subsets:
+  - addresses:
+      - ip: 172.17.0.4 #ip app может меняться
+      - ip: 172.17.0.5
+    ports:
+      - port: 8083
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8083
+  clusterIP: 10.106.138.166 #ssh curl 10.106.138.166
+  externalIPs:
+    - 192.168.42.71
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1-1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deployment-1 #важное имя для сервиса
+  template:
+    metadata:
+      labels:
+        app: deployment-1 #имя должно совпадать
+    spec:
+      containers:
+        - name: i-1
+          image: pavelk6896/10187native4-3:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: MY_POD_IP #ip address пода
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
