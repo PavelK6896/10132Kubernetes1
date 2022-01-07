@@ -1,0 +1,90 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-1
+spec:
+  #для внутри кластерного взаимодействия, в одном name space
+  type: ClusterIP #default
+  clusterIP: 10.103.64.186 #default random
+  selector:
+    app: deployment-1
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: j
+      protocol: TCP
+      port: 8083
+      targetPort: 8083
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 9377
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-2
+spec:
+  #балансировка по селекторам и днс
+  #name service . name pod
+  type: ClusterIP #default
+  clusterIP: None #headless
+  selector:
+    app: deployment-1
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-3
+spec:
+  #для публикации через другой сервис трафика из порта на порт static
+  #из диапазона портов 30000 до 32767
+  type: NodePort
+  selector:
+    app: deployment-1
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-4
+spec:
+  #балансировщик спецификация, статического ip
+  type: LoadBalancer
+  selector:
+    app: deployment-1
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-5
+spec:
+  # из пода по днс записи в кластере
+  type: ExternalName
+  externalName: my.da
+  selector:
+    app: deployment-1
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083
+
