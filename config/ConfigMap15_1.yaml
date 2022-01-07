@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-map-1
+immutable: true
+data:
+  pr-1: '1'
+  pr-2: '2'
+  player_initial_lives: "3"
+  ui_properties_file_name: "user-interface.properties"
+  game.properties: |
+    enemy.types=aliens,monsters
+    player.maximum-lives=5
+  user-interface.properties: |
+    color.good=purple
+    color.bad=yellow
+    allow.text-mode=true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1-1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: deployment-1 #важное имя для сервиса
+  template:
+    metadata:
+      labels:
+        app: deployment-1 #имя должно совпадать
+    spec:
+      containers:
+        - name: i-1
+          image: pavelk6896/10187native4-3:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+
+          envFrom:
+            - configMapRef:
+                name: config-map-1
+
+          env:
+            - name: MY_POD_IP #ip address пода
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            - name: PLAYER_INITIAL_LIVES # Notice that the case is different here Обратите внимание, что дело отличается здесь
+                                          # from the key name in the ConfigMap. из ключевого имени в конфигурации.
+              valueFrom:
+                configMapKeyRef:
+                  name: config-map-1           # The ConfigMap this value comes from.
+                  key: player_initial_lives
+            - name: UI_PROPERTIES_FILE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: config-map-1
+                  key: ui_properties_file_name
+          volumeMounts:
+            - name: config
+              mountPath: "/config"
+              readOnly: true
+      volumes:
+          # You set volumes at the Pod level, then mount them into containers inside that Pod
+          # kubectl exec --stdin --tty deployment-1-1-7c6d949d7d-5b7pz -- sh
+          # run shell; ls; cd config; cat game.properties;
+        - name: config
+          configMap:     # Provide the name of the ConfigMap you want to mount. Укажите имя конфигурации, которую вы хотите установить.
+            name: config-map-1  # An array of keys from the ConfigMap to create as files Массив клавиш из конфигурации для создания в качестве файлов
+            defaultMode: 420
+            items: #default all
+              - key: "pr-1"
+                path: "pr-1"
+              - key: "pr-2"
+                mode: 0555
+                path: "pr-2"
+              - key: "game.properties"
+                path: "game.properties"
+              - key: "user-interface.properties"
+                path: "user-interface.properties"
+
+
+
+---
+# kubectl port-forward service/service-1 8080:8083
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-1
+  labels:
+    app: ingress-class-1
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 8083
+      targetPort: 8083
+      name: p-s-1
+  selector:
+    app: deployment-1
