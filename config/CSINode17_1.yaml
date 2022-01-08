@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: CSINode
+metadata:
+  name: csi-node-1
+spec:
+  drivers:
+    - name: csi-driver-1
+      nodeID: storageNodeID1
+      topologyKeys: ['csi-driver-1/regions', "csi-driver-1/zones"]
+
+
+# kubectl get CSINode
