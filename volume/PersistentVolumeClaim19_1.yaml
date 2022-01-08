@@ -1,0 +1,101 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: p-v-c-1
+spec:
+#  storageClassName: name default
+#  volumeMode: Filesystem default
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Mi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: deployment-1
+  template:
+    metadata:
+      labels:
+        name: deployment-1
+    spec:
+      initContainers: #изменить привилегии на папке
+        - image: busybox
+          name: mount-permissions
+          imagePullPolicy: IfNotPresent
+          command: [ "sh", "-c", "chmod 777 /data" ]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      containers:
+        - image: centosadmin/reloadable-nginx:1.13.0 #с перезагрузкой docker pull centosadmin/reloadable-nginx:1.13.0
+          name: nginx-reloadeble
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: c-m-1
+        - name: data
+          persistentVolumeClaim: #хранит файлы в папке
+            claimName: p-v-c-1
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: c-m-1
+data:
+  default.conf: |
+    server {
+      listen       80 default_server;
+      server_name  _;
+
+      default_type text/plain;
+
+      location / {
+        return 200 '$hostname\n new test text\n true new ';
+      }
+    
+      location /t {
+        return 200 ' true ';
+      }
+
+      location /files {
+        alias /data;
+        autoindex on;
+        client_body_temp_path /tmp;
+        dav_methods PUT DELETE MKCOL COPY MOVE;
+        create_full_put_path on;
+        dav_access user:rw group:rw all:r;
+      }
+    }
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-1-2
+  namespace: default
+spec:
+  selector:
+    name: deployment-1
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 80
