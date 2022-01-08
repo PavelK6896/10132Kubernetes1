@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-1-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: deployment-1
+  template:
+    metadata:
+      labels:
+        name: deployment-1
+    spec:
+      containers:
+        - image: quay.io/jitesoft/nginx:1.21.5
+          name: nginx
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe: #готово
+            failureThreshold: 3 #количество попыток
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          livenessProbe: #существует
+            failureThreshold: 3
+            tcpSocket:
+              port: 80
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+            initialDelaySeconds: 10
+          startupProbe: #только при старте
+            httpGet:
+              path: /
+              port: 80
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+
+---
+#docker-desktop http://localhost:8080
+#minikube kubectl port-forward service/service-1-2 8080:8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-1-2
+  namespace: default
+spec:
+  selector:
+    name: deployment-1
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 80
+
+
+# kubectl get all
+# docker stats
+# kubectl get pod -w
