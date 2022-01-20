@@ -1,0 +1,55 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: storage-class-1
+provisioner: kubernetes.io/aws-ebs #Поставщик услуг
+parameters:
+  type: gp2
+reclaimPolicy: Retain #Удерживать Retain Delete
+allowVolumeExpansion: true #изменения объема
+mountOptions: #параметр монтирования
+  - debug
+volumeBindingMode: WaitForFirstConsumer # WaitForFirstConsumer с задержкой Immediate порядок привязки
+allowedTopologies: # привязка к месту
+  - matchLabelExpressions:
+      - key: failure-domain.beta.kubernetes.io/zone
+        values:
+          - us-central1-a
+          - us-central1-b
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storage-class-1
+spec:
+  #Селектор узла - это селектор, который должен быть истинным, чтобы модуль помещался на узле.
+  #Селектор, который должен соответствовать меткам узла, чтобы модуль был запланирован на этом узле.
+  nodeSelector:
+    kubernetes.io/hostname: docker-desktop
+  containers:
+    - name: nginx
+      image: quay.io/jitesoft/nginx:1.21.5
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/usr/share/nginx/html"
+          name: pvc1-1
+  volumes:
+    - name: pvc1-1
+      persistentVolumeClaim:
+        claimName: pvc1
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc1
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Mi
