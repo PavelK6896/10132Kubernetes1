@@ -1,0 +1,50 @@
+
+--//
+docker run --name some-mongo -d mongo:5.0.5
+
+
+--//
+show databases
+use food
+show collections
+
+db.createCollection("fruits")
+db.fruits.insertMany([ {name: "apple", origin: "usa", price: 5}, {name: "orange", origin: "italy", price: 3}, {name: "mango", origin: "malaysia", price: 3} ])
+db.fruits.find().pretty()
+
+
+--//create replicas
+kubectl exec -it mongod-0 -c mongod-container bash
+hostname -f
+
+mongo
+rs.status();
+
+rs.initiate({ _id: "MainRepSet", version: 1, members: [
+ { _id: 0, host: "mongod-0.mongodb-service.default.svc.cluster.local:27017" },
+ { _id: 1, host: "mongod-1.mongodb-service.default.svc.cluster.local:27017" },
+ { _id: 2, host: "mongod-2.mongodb-service.default.svc.cluster.local:27017" } ]});
+
+
+db.getSiblingDB("admin").createUser({
+       user : "demoadmin",
+       pwd  : "demopwd123",
+       roles: [ { role: "root", db: "admin" } ] });
+
+use admin
+db.system.users.find()
+
+rs.secondaryOk();
+
+cfg = rs.conf()
+cfg.members[0].priority = 1
+cfg.members[1].priority = 0.1
+cfg.members[2].priority = 0.1
+rs.reconfig(cfg)
+
+
+
+
+
+
+
